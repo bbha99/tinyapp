@@ -18,7 +18,9 @@ function generateRandomString(n) {
 app.set("view engine", "ejs");
 
 // Middleware
+// req.body parser
 app.use(express.urlencoded({ extended: true }));
+// req.cookie parser
 app.use(cookieParser());
 
 // Database
