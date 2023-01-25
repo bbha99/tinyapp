@@ -64,7 +64,12 @@ app.post("/urls", (req, res) => {
   urlDatabase[randomString] = req.body.longURL;
   // res.send("Ok"); // Respond with 'Ok' (we will replace this)
   res.redirect(`/urls/${randomString}`);
+});
 
+app.post("/urls/:id/delete", (req, res) => {
+
+  delete urlDatabase[req.params.id];
+  res.redirect('/urls');
 });
 
 
