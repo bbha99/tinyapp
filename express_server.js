@@ -46,10 +46,10 @@ const users = {
 const getUserByEmail = email => {
   for (let user in users) {
     if (users[user].email === email) {
-      return null;
+      return users[user];
     }
   }
-  return users;
+  return null;
 }
 
 // Route definitions
@@ -66,7 +66,17 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  res.render("register");
+  const templateVars = { 
+    user: null
+  };
+  res.render("register", templateVars);
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = { 
+    user: null
+  };
+  res.render("login", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
@@ -119,12 +129,25 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  const user = getUserByEmail(email);
+  if (user === null) {
+    return res.status(403).send("Error 403: Email cannot be found");
+  }
+  if (user.password !== password) {
+    return res.status(403).send("Error 403: Password is incorrect");
+  }
+  console.log("user is: ", user);
+  res.cookie("user_id", user.id);
+  
   res.redirect('/urls');
 });
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.post("/register", (req, res) => {
@@ -135,7 +158,7 @@ app.post("/register", (req, res) => {
   if (email === "" || password === "") {
     return res.status(400).send("Error 400: Empty field provided");
   }
-  if (getUserByEmail(email) === null) {
+  if (getUserByEmail(email)) {
     return res.status(400).send(`"Error 400: Email is already taken"`);
   }
 
