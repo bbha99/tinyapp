@@ -1,5 +1,6 @@
 const express = require("express");
 var cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 // const morgan = require("morgan");
 
 const app = express();
@@ -228,7 +229,8 @@ app.post("/login", (req, res) => {
   if (user === null) {
     return res.status(403).send("Error 403: Email cannot be found");
   }
-  if (user.password !== password) {
+
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Error 403: Password is incorrect");
   }
   console.log("user is: ", user);
@@ -254,10 +256,12 @@ app.post("/register", (req, res) => {
     return res.status(400).send(`"Error 400: Email is already taken"`);
   }
 
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   users[id] = {
     id,
     email,
-    password
+    password: hashedPassword
   };
   console.log("users", users);
   res.cookie("user_id", id);
