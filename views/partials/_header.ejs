@@ -18,7 +18,8 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-    <% if (!username) { %>
+    
+    <% if (!user) { %>
       <form method = "POST" action = "/login">
         <input 
           placeholder="Username"
@@ -28,7 +29,7 @@
         <button>Login</button>
       </form>
     <% } else { %>
-      <h3>Logged in as: <%= username %> User!</h3>
+      <h3>Logged in as: <%= user.email %> </h3>
       <form method = "POST" action = "/logout">
         <button>Logout</button>
       </form>

@@ -3,7 +3,7 @@ var cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = 8080; // default port 8080
-
+// test comment
 function generateRandomString(n) {
   let randomString = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -29,29 +29,58 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-// Route definitions
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher",
+  },
+};
 
+// Functions
+const getUserByEmail = email => {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return null;
+    }
+  }
+  return users;
+}
+
+// Route definitions
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
 app.get("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
   const templateVars = { urls: urlDatabase, 
-    username: req.cookies["username"]
+    user: users[userId]
   };
   res.render("urls_index", templateVars);
 });
 
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
 app.get("/urls/new", (req, res) => {
+  const userId = req.cookies["user_id"];
   const templateVars = { urls: urlDatabase, 
-    username: req.cookies["username"]
+    user: users[userId]
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
+  const userId = req.cookies["user_id"];
   const shortURL = req.params.id;
-  const templateVars = { id: shortURL, longURL: urlDatabase[shortURL], username: req.cookies["username"] };
+  const templateVars = { id: shortURL, longURL: urlDatabase[shortURL], user: users[userId] };
   res.render("urls_show", templateVars);
 });
 
@@ -77,7 +106,6 @@ app.post("/urls", (req, res) => {
 });
 
 app.post('/urls/:id', (req, res) => {
-  console.log("hell")
   const newLongURL = req.body.longURL;
   const keyID = req.params.id;
   urlDatabase[keyID] = newLongURL;
@@ -91,13 +119,35 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
   res.redirect('/urls');
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
+});
+
+app.post("/register", (req, res) => {
+  const id = generateRandomString(6);
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (email === "" || password === "") {
+    return res.status(400).send("Error 400: Empty field provided");
+  }
+  if (getUserByEmail(email) === null) {
+    return res.status(400).send(`"Error 400: Email is already taken"`);
+  }
+
+  users[id] = {
+    id,
+    email,
+    password
+  };
+  console.log("users", users);
+  res.cookie("user_id", id);
+  res.redirect("/urls");
+
 });
 
 
