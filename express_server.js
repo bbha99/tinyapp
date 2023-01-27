@@ -1,5 +1,7 @@
+const {getUserByEmail} = require("./helpers");
 const express = require("express");
-var cookieParser = require('cookie-parser');
+// var cookieParser = require('cookie-parser');
+var cookieSession = require('cookie-session')
 const bcrypt = require("bcryptjs");
 // const morgan = require("morgan");
 
@@ -13,7 +15,14 @@ app.set("view engine", "ejs");
 // req.body parser
 app.use(express.urlencoded({ extended: true }));
 // req.cookie parser
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'currentSession',
+  keys: ["user_id"],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}))
 
 // app.use(morgan('dev'));
 
@@ -30,38 +39,31 @@ app.use(cookieParser());
 
 // Database
 const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "userRandomID",
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "userRandomID",
-  },
+  // b6UTxQ: {
+  //   longURL: "https://www.tsn.ca",
+  //   userID: "userRandomID",
+  // },
+  // i3BoGr: {
+  //   longURL: "https://www.google.ca",
+  //   userID: "userRandomID",
+  // }
 };
 
 const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher",
-  },
+  // userRandomID: {
+  //   id: "userRandomID",
+  //   email: "user@example.com",
+  //   password: "purple",
+  // },
+  // user2RandomID: {
+  //   id: "user2RandomID",
+  //   email: "user2@example.com",
+  //   password: "dishwasher",
+  // }
 };
 
 // Functions
-const getUserByEmail = email => {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return null;
-}
+
 
 function generateRandomString(n) {
   let randomString = '';
@@ -89,7 +91,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if(!userId) {
     return res.send("Error: Please log in or register first")
   }
@@ -102,7 +104,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if(userId) {
     res.redirect("/urls");
   }
@@ -113,7 +115,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if(userId) {
     return res.redirect("/urls");
   }
@@ -124,7 +126,7 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if (!userId) {
     return res.redirect("/login");
   }
@@ -135,7 +137,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if (!userId) {
     return res.send("Please login first");
   }
@@ -170,7 +172,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if (!userId) {
     return res.send("Must be logged in to create a new tiny URL")
   }
@@ -187,7 +189,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.post('/urls/:id', (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const newLongURL = req.body.longURL;
   const keyID = req.params.id;
   if (!urlDatabase[keyID]) {
@@ -205,7 +207,7 @@ app.post('/urls/:id', (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const keyID = req.params.id;
   if (!urlDatabase[keyID]) {
     return res.send("Cannot be deleted as ID does not exist");
@@ -225,7 +227,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
   if (user === null) {
     return res.status(403).send("Error 403: Email cannot be found");
   }
@@ -234,13 +236,15 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Error 403: Password is incorrect");
   }
   console.log("user is: ", user);
-  res.cookie("user_id", user.id);
+  req.session.user_id = user.id;
+  // res.cookie("user_id", user.id);
   
   res.redirect('/urls');
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  // res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/login");
 });
 
@@ -252,7 +256,7 @@ app.post("/register", (req, res) => {
   if (email === "" || password === "") {
     return res.status(400).send("Error 400: Empty field provided");
   }
-  if (getUserByEmail(email)) {
+  if (getUserByEmail(email, users)) {
     return res.status(400).send(`"Error 400: Email is already taken"`);
   }
 
@@ -264,7 +268,8 @@ app.post("/register", (req, res) => {
     password: hashedPassword
   };
   console.log("users", users);
-  res.cookie("user_id", id);
+  req.session.user_id = id;
+  // res.cookie("user_id", id);
   res.redirect("/urls");
 
 });
