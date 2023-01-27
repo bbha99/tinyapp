@@ -26,6 +26,14 @@ const urlDatabase = {};
 const users = {};
 
 // Route Definitions
+app.get("/", (req, res) => {
+  const userId = req.session.user_id;
+  if (!userId) {
+    return res.redirect('/login');
+  }
+  res.redirect('/urls');
+});
+
 // Display URLs made by the logged in user
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
